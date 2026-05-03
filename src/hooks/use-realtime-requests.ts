@@ -1,106 +1,63 @@
-"use client";
+import { useState, useEffect } from "react";
+import { 
+  collection, 
+  query, 
+  orderBy, 
+  onSnapshot, 
+  doc, 
+  updateDoc,
+  Timestamp 
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useQueryClient } from "@tanstack/react-query";
 
-import { useEffect, useState, useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
-import type { EmergencyRequest } from "@/lib/schemas";
-
-interface UseRealtimeRequestsOptions {
-  status?: string;
-  category?: string;
-  urgency?: string;
-}
-
-export function useRealtimeRequests(options: UseRealtimeRequestsOptions = {}) {
+export function useRealtimeRequests() {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const supabase = createClient();
-  const [isConnected, setIsConnected] = useState(false);
 
-  const queryKey = ["emergency-requests", options];
-
-  const {
-    data: requests = [],
-    isLoading,
-    error,
-    refetch,
-  } = useQuery<EmergencyRequest[]>({
-    queryKey,
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (options.status) params.set("status", options.status);
-      if (options.category) params.set("category", options.category);
-      if (options.urgency) params.set("urgency", options.urgency);
-
-      const res = await fetch(`/api/requests?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch requests");
-      const data = await res.json();
-      return data.requests || [];
-    },
-  });
-
-  // Subscribe to real-time changes
   useEffect(() => {
-    const channel = supabase
-      .channel("emergency-requests-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "emergency_requests",
-        },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            queryClient.setQueryData<EmergencyRequest[]>(queryKey, (old = []) => [
-              payload.new as EmergencyRequest,
-              ...old,
-            ]);
-          } else if (payload.eventType === "UPDATE") {
-            queryClient.setQueryData<EmergencyRequest[]>(queryKey, (old = []) =>
-              old.map((req) =>
-                req.id === (payload.new as EmergencyRequest).id
-                  ? (payload.new as EmergencyRequest)
-                  : req
-              )
-            );
-          } else if (payload.eventType === "DELETE") {
-            queryClient.setQueryData<EmergencyRequest[]>(queryKey, (old = []) =>
-              old.filter(
-                (req) => req.id !== (payload.old as { id: string }).id
-              )
-            );
-          }
-        }
-      )
-      .subscribe((status) => {
-        setIsConnected(status === "SUBSCRIBED");
+    const q = query(
+      collection(db, "emergency_requests"), 
+      orderBy("created_at", "desc")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        // Convert Firebase Timestamp to ISO string for compatibility
+        created_at: (doc.data().created_at as Timestamp)?.toDate().toISOString(),
+        resolved_at: (doc.data().resolved_at as Timestamp)?.toDate().toISOString() || null,
+      }));
+      setRequests(data);
+      setLoading(false);
+      
+      // Also update TanStack Query cache so other components can benefit
+      queryClient.setQueryData(["emergency_requests"], data);
+    }, (err) => {
+      console.error("Firestore error:", err);
+      setError(err.message);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [queryClient]);
+
+  const updateRequest = async (id: string, updates: any) => {
+    try {
+      const docRef = doc(db, "emergency_requests", id);
+      await updateDoc(docRef, {
+        ...updates,
+        // Ensure status-specific timestamps are handled if needed
+        updated_at: Timestamp.now()
       });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.status, options.category, options.urgency]);
-
-  const updateRequest = useCallback(
-    async (id: string, updates: Partial<EmergencyRequest>) => {
-      const res = await fetch("/api/requests", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, ...updates }),
-      });
-      if (!res.ok) throw new Error("Failed to update request");
-      return res.json();
-    },
-    []
-  );
-
-  return {
-    requests,
-    isLoading,
-    error,
-    isConnected,
-    refetch,
-    updateRequest,
+    } catch (err) {
+      console.error("Update error:", err);
+      throw err;
+    }
   };
+
+  return { requests, loading, error, updateRequest };
 }

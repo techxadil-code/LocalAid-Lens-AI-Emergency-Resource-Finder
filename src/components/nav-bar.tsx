@@ -2,17 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Zap, LayoutDashboard, LogOut, Moon, Sun, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/providers/auth-provider";
 
 export function NavBar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { user, signOut } = useAuth();
   const [isDark, setIsDark] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -68,23 +68,23 @@ export function NavBar() {
           <Button variant="ghost" size="sm" onClick={toggleTheme} className="size-9 p-0">
             {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
-          {session?.user ? (
+          {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-violet-500">
                 <Avatar className="size-9 border hover:border-violet-500 transition-colors">
-                  <AvatarImage src={session.user.image || ""} alt={session.user.name || ""} />
+                  <AvatarImage src={user.photoURL || ""} alt={user.displayName || ""} />
                   <AvatarFallback className="text-xs bg-gradient-to-br from-violet-500 to-indigo-500 text-white">
-                    {session.user.name?.charAt(0) || "U"}
+                    {user.displayName?.charAt(0) || user.email?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-2 py-1.5">
-                  <p className="text-sm font-medium">{session.user.name}</p>
-                  <p className="text-xs text-muted-foreground">{session.user.email}</p>
+                  <p className="text-sm font-medium">{user.displayName || "Volunteer"}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()} className="gap-2 text-red-500">
+                <DropdownMenuItem onClick={() => signOut()} className="gap-2 text-red-500 cursor-pointer">
                   <LogOut className="size-4" /> Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>

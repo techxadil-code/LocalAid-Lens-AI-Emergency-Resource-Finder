@@ -5,36 +5,43 @@ import { ActionCard } from "./action-card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Wifi, WifiOff, Inbox } from "lucide-react";
-import { useState, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useState, useCallback, useMemo } from "react";
+import { useAuth } from "@/providers/auth-provider";
 
 export function DashboardFeed() {
-  const { data: session } = useSession();
+  const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
-  const { requests, isLoading, isConnected, updateRequest } = useRealtimeRequests({
-    status: statusFilter,
-    category: categoryFilter,
-  });
+  const { requests, loading, updateRequest } = useRealtimeRequests();
 
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  const filteredRequests = useMemo(() => {
+    return requests.filter(r => {
+      const statusMatch = statusFilter === "all" || r.status === statusFilter;
+      const categoryMatch = categoryFilter === "all" || r.category?.toLowerCase() === categoryFilter.toLowerCase();
+      return statusMatch && categoryMatch;
+    });
+  }, [requests, statusFilter, categoryFilter]);
+
   const handleTakeCharge = useCallback(async (id: string) => {
-    const user = session?.user as any;
-    if (!user?.id) return;
+    if (!user?.uid) return;
     setUpdatingId(id);
     try {
-      await updateRequest(id, { status: "verifying", assigned_to: user.id });
+      await updateRequest(id, { status: "verifying", assigned_to: user.uid });
     } finally {
       setUpdatingId(null);
     }
-  }, [session, updateRequest]);
+  }, [user, updateRequest]);
 
   const handleStatusChange = useCallback(async (id: string, status: string) => {
     setUpdatingId(id);
     try {
-      await updateRequest(id, { status: status as any, ...(status === "resolved" ? { resolved_at: new Date().toISOString() } : {}) });
+      await updateRequest(id, { 
+        status: status as any, 
+        ...(status === "resolved" ? { resolved_at: new Date() } : {}) 
+      });
     } finally {
       setUpdatingId(null);
     }
@@ -52,11 +59,7 @@ export function DashboardFeed() {
       {/* Stats Bar */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1.5">
-          {isConnected ? (
-            <><Wifi className="size-3.5 text-green-500" /><span className="text-xs text-green-500 font-medium">Live</span></>
-          ) : (
-            <><WifiOff className="size-3.5 text-red-500" /><span className="text-xs text-red-500 font-medium">Offline</span></>
-          )}
+          <Wifi className="size-3.5 text-green-500" /><span className="text-xs text-green-500 font-medium">Live Feed</span>
         </div>
         <div className="h-4 w-px bg-border" />
         <Badge variant="outline" className="text-xs gap-1">{stats.total} Total</Badge>
@@ -92,24 +95,24 @@ export function DashboardFeed() {
       </div>
 
       {/* Feed */}
-      {isLoading ? (
+      {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Loader2 className="size-8 animate-spin text-violet-500" />
           <p className="text-sm text-muted-foreground">Loading emergency requests...</p>
         </div>
-      ) : requests.length === 0 ? (
+      ) : filteredRequests.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <div className="flex size-20 items-center justify-center rounded-3xl bg-muted/50">
             <Inbox className="size-10 text-muted-foreground/50" />
           </div>
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-muted-foreground">No requests yet</h3>
-            <p className="text-sm text-muted-foreground/70 mt-1">Emergency requests will appear here in real-time.</p>
+            <h3 className="text-lg font-semibold text-muted-foreground">No requests found</h3>
+            <p className="text-sm text-muted-foreground/70 mt-1">Try adjusting your filters or wait for new incoming requests.</p>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {requests.map((request, index) => (
+          {filteredRequests.map((request, index) => (
             <div key={request.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300" style={{ animationDelay: `${index * 50}ms` }}>
               <ActionCard
                 request={request}

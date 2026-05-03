@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, ImagePlus, FileText, X, Loader2, CheckCircle2, AlertCircle, Clipboard } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/providers/auth-provider";
 
 export function UploadZone() {
-  const { data: session } = useSession();
+  const { user } = useAuth();
   const { uploadImage, uploadText, isUploading, progress, result, error, reset } = useEmergencyUpload();
   const [isDragging, setIsDragging] = useState(false);
   const [mode, setMode] = useState<"image" | "text">("image");
@@ -45,9 +45,8 @@ export function UploadZone() {
   }, []);
 
   const handleSubmit = () => {
-    const user = session?.user as any;
-    if (mode === "image" && selectedFile) uploadImage(selectedFile, user?.id);
-    else if (mode === "text" && textInput.trim()) uploadText(textInput, user?.id);
+    if (mode === "image" && selectedFile) uploadImage(selectedFile, user?.uid);
+    else if (mode === "text" && textInput.trim()) uploadText(textInput, user?.uid);
   };
 
   const handleReset = () => { setPreview(null); setSelectedFile(null); setTextInput(""); reset(); };
