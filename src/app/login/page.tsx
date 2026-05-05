@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, Chrome } from "lucide-react";
+import { Heart, LogIn } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -42,7 +42,7 @@ export default function LoginPage() {
             className="w-full h-12 text-base font-medium rounded-xl gap-3 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
             onClick={() => signInWithGoogle()}
           >
-            <Chrome className="size-5 text-violet-600" />
+            <LogIn className="size-5 text-violet-600" />
             Continue with Google
           </Button>
           
