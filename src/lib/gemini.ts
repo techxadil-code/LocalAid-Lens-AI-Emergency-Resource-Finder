@@ -43,7 +43,7 @@ export async function extractEmergencyData(
   verificationFlags: string[];
   urgencyScore: number;
 }> {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-light-preview" });
 
   const result = await model.generateContent([
     EXTRACTION_PROMPT,
@@ -113,7 +113,7 @@ export async function extractFromText(
   verificationFlags: string[];
   urgencyScore: number;
 }> {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-light-preview" });
 
   const textPrompt = EXTRACTION_PROMPT.replace(
     "Analyze the provided image (a screenshot from WhatsApp, Twitter, or similar messaging platforms)",
