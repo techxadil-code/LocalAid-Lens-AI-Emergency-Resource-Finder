@@ -6,7 +6,7 @@
 During emergencies (natural disasters, medical crises), critical requests for blood, oxygen, or rescue are often scattered across social media and messaging apps as images. Volunteers lose precious time manually transcribing these details.
 
 ## ✨ The Solution: Offbeat
-- **AI-Powered OCR**: Uses Gemini 1.5 Flash to accurately extract names, phone numbers, locations, and urgency levels from screenshots.
+- **AI-Powered OCR**: Uses Gemini 3.5 Flash Light Preview to accurately extract names, phone numbers, locations, and urgency levels from screenshots.
 - **Structured Data**: Automatically categorizes requests (Blood, Oxygen, Shelter, etc.) and flags missing information.
 - **Real-Time Dashboard**: Volunteers see new "Action Cards" instantly via Firebase Firestore real-time listeners.
 - **Coordinate**: Volunteers can "Take Charge" of a request, preventing duplicate efforts and tracking progress in real-time.
@@ -17,7 +17,7 @@ During emergencies (natural disasters, medical crises), critical requests for bl
 - **Backend/Database**: [Firebase (Firestore)](https://firebase.google.com/products/firestore)
 - **Authentication**: [Firebase Auth](https://firebase.google.com/products/auth) (Google Sign-In)
 - **Storage**: [Firebase Storage](https://firebase.google.com/products/storage)
-- **AI Engine**: [Google Gemini 1.5 Flash](https://aistudio.google.com/)
+- **AI Engine**: [Google Gemini 3.5 Flash Light Preview](https://aistudio.google.com/)
 - **State Management**: [TanStack Query v5](https://tanstack.com/query/latest)
 
 ## 🏁 Getting Started
@@ -52,6 +52,13 @@ GEMINI_API_KEY=your_gemini_key
 ```bash
 npm install
 npm run dev
+```
+
+### 5. Docker Deployment
+You can also build and run the application using Docker:
+```bash
+docker build -t offbeat-app .
+docker run -p 3000:3000 --env-file .env.local offbeat-app
 ```
 
 ## 🏗️ Architecture
